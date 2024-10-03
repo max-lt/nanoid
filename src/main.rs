@@ -13,7 +13,7 @@ macro_rules! clz32 {
     };
 }
 
-const MASK: u32 = (2 << (31 - clz32!(ALPHABET.len() as u32))) - 1;
+const MASK: u8 = (2 << (31 - clz32!(ALPHABET.len() as u32))) - 1;
 
 struct InfiniteRand {
     rng: StdRng,
@@ -51,7 +51,7 @@ fn nanoid(inf: &mut InfiniteRand, size: usize) -> String {
     let mut id = String::new();
 
     loop {
-        let index = (inf.next().unwrap() & MASK as u8) as usize;
+        let index = (inf.next().unwrap() & MASK) as usize;
 
         if index < ALPHABET.len() {
             id.push(ALPHABET[index] as char);
