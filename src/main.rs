@@ -1,6 +1,7 @@
 use clap::Parser;
 use rand::rngs::StdRng;
-use rand::Rng;
+use rand::rngs::SysRng;
+use rand::RngExt;
 use rand::SeedableRng;
 
 const ALPHABET: &[u8; 58] = b"123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -23,7 +24,8 @@ struct InfiniteRand {
 
 impl InfiniteRand {
     fn new() -> Self {
-        let mut rng = StdRng::from_entropy();
+        let mut rng =
+            StdRng::try_from_rng(&mut SysRng).expect("failed to seed RNG from system entropy");
         let mut buf = [0; BUFFER_SIZE];
         rng.fill(&mut buf[..]);
         InfiniteRand { rng, buf, index: 0 }
@@ -81,12 +83,12 @@ fn main() {
 
     let mut inf = InfiniteRand::new();
 
-    if args.size <= 0 {
+    if args.size == 0 {
         eprintln!("Size must be greater than 0");
         std::process::exit(1);
     }
 
-    if args.n <= 0 {
+    if args.n == 0 {
         eprintln!("Number of IDs must be greater than 0");
         std::process::exit(1);
     }
