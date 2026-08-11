@@ -3,6 +3,11 @@ name = "nanoid"
 version = "0.1.1"
 edition = "2021"
 
+[features]
+# Adds --infnoise: draw randomness from an Infinite Noise TRNG.
+infnoise = ["dep:infnoise-rs"]
+
 [dependencies]
 clap = { version = "4.6.5", features = ["derive"] }
+infnoise-rs = { git = "https://github.com/max-lt/infnoise-rs.git", features = ["rand"], optional = true }
 rand = "0.10.2"

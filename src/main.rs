@@ -1,6 +1,7 @@
 use clap::Parser;
 use rand::rngs::StdRng;
 use rand::rngs::SysRng;
+use rand::Rng;
 use rand::RngExt;
 use rand::SeedableRng;
 
@@ -16,23 +17,21 @@ macro_rules! clz32 {
 
 const MASK: u8 = (2 << (31 - clz32!(ALPHABET.len() as u32))) - 1;
 
-struct InfiniteRand {
-    rng: StdRng,
+struct InfiniteRand<R: Rng> {
+    rng: R,
     buf: [u8; BUFFER_SIZE],
     index: usize,
 }
 
-impl InfiniteRand {
-    fn new() -> Self {
-        let mut rng =
-            StdRng::try_from_rng(&mut SysRng).expect("failed to seed RNG from system entropy");
+impl<R: Rng> InfiniteRand<R> {
+    fn new(mut rng: R) -> Self {
         let mut buf = [0; BUFFER_SIZE];
         rng.fill(&mut buf[..]);
         InfiniteRand { rng, buf, index: 0 }
     }
 }
 
-impl Iterator for InfiniteRand {
+impl<R: Rng> Iterator for InfiniteRand<R> {
     type Item = u8;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -49,7 +48,7 @@ impl Iterator for InfiniteRand {
     }
 }
 
-fn nanoid(inf: &mut InfiniteRand, size: usize) -> String {
+fn nanoid<R: Rng>(inf: &mut InfiniteRand<R>, size: usize) -> String {
     let mut id = String::new();
 
     loop {
@@ -76,12 +75,23 @@ struct Args {
     /// Size of each ID
     #[arg(short = 's', long = "size", default_value_t = 12, value_name = "INT")]
     size: usize,
+
+    /// Draw randomness from an Infinite Noise TRNG instead of the system RNG
+    #[cfg(feature = "infnoise")]
+    #[arg(long)]
+    infnoise: bool,
+}
+
+fn run<R: Rng>(rng: R, args: &Args) {
+    let mut inf = InfiniteRand::new(rng);
+    for _ in 0..args.n {
+        let id = nanoid(&mut inf, args.size);
+        println!("{}", id);
+    }
 }
 
 fn main() {
     let args = Args::parse();
-
-    let mut inf = InfiniteRand::new();
 
     if args.size == 0 {
         eprintln!("Size must be greater than 0");
@@ -93,10 +103,17 @@ fn main() {
         std::process::exit(1);
     }
 
-    for _ in 0..args.n {
-        let id = nanoid(&mut inf, args.size);
-        println!("{}", id);
+    #[cfg(feature = "infnoise")]
+    if args.infnoise {
+        let device = infnoise_rs::device::Infnoise::open(None).unwrap_or_else(|err| {
+            eprintln!("infnoise: {err}");
+            std::process::exit(1);
+        });
+        return run(rand::rand_core::UnwrapErr(device), &args);
     }
+
+    let rng = StdRng::try_from_rng(&mut SysRng).expect("failed to seed RNG from system entropy");
+    run(rng, &args);
 }
 
 #[cfg(test)]
@@ -104,9 +121,14 @@ mod tests {
     use super::nanoid;
     use super::InfiniteRand;
 
+    fn test_rng() -> impl super::Rng {
+        use super::SeedableRng;
+        super::StdRng::seed_from_u64(42)
+    }
+
     #[test]
     fn test_nanoid_length() {
-        let mut inf = InfiniteRand::new();
+        let mut inf = InfiniteRand::new(test_rng());
 
         let id = nanoid(&mut inf, 170);
 
@@ -115,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_nanoid_alphabet() {
-        let mut inf = InfiniteRand::new();
+        let mut inf = InfiniteRand::new(test_rng());
 
         let id = nanoid(&mut inf, 200);
 
