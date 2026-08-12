@@ -166,8 +166,8 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "infnoise-rs"
-version = "0.1.0"
-source = "git+https://github.com/max-lt/infnoise-rs.git#f1d35980c09b3413d8f673c94a38f1f22b46d515"
+version = "0.1.2"
+source = "git+https://github.com/max-lt/infnoise-rs.git?rev=0e52ee9e2cdb02fc42a7bc38e4436b84e170358b#0e52ee9e2cdb02fc42a7bc38e4436b84e170358b"
 dependencies = [
  "clap",
  "rand_core",
