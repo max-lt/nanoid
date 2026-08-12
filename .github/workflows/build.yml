@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -14,31 +17,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Test
+      run: cargo test --release
+
     - name: Build
       run: cargo build --release
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Create release
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
-
-    - uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./target/release/nanoid
-        asset_name: nanoid
-        asset_content_type: application/octet-stream
-
-    - uses: eregon/publish-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}
+        GH_TOKEN: ${{ github.token }}
+      run: >
+        gh release create "$GITHUB_REF_NAME" target/release/nanoid
+        --title "Release $GITHUB_REF_NAME" --verify-tag
